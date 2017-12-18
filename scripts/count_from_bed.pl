@@ -54,32 +54,39 @@ if ($sam =~ m/\.gz/) {
 	$cat = "zcat";
 }
 
-# anything matching XF:Z:ENS has successfully mapped a read to a gene
+# anything matching NH:i:1 has uniquely mapped a read
 # so we can ignore them.  Everything else is fair game
 # BEDTools expects a BAM file so we need to pipe through samtools
-open(IN, "$cat $sam \| grep -v \"XF:Z:ENS\" \| $samtools view -S -b -T $fasta - \| $bedtools -abam - -bed -wb -b $bed |");
+open(IN, "$cat < $sam \| grep -v \"NH:i:1\" \| $samtools view -S -b -T $fasta - \| $bedtools -abam - -bed -wb -b $bed |");
 
 # variables to hold the results
 my $r = undef;
-my $g - undef;
+my $g = undef;
 
 while(<IN>) {
-
+       # print;
 	# split on whitespace
 	my @d = split(/\s+/);
 
 	# get the read ID
 	my $read = $d[3];
 
-	# get the hit ID 
-	my $hit  = $d[15];
+	# get the hit ID
+        my $hit; 
+        #print $d[23],"\n";
+	if ($d[23] =~ /name=(\w+_\d+);?/){
+           # print $1, "\n";
+            $hit = $1;
+        } else {
+            next;
+        } 
 
 	# hit ID from BED file is assumed to be exon_id.gene_id
-	my ($exon,$gene) = split(/\./, $hit);
+	#my ($exon,$gene) = split(/\./, $hit);
 	
 	# count that gene for that read
 	# only once using hash refs
-	$g->{$read}->{$gene}++;
+	$g->{$read}->{$hit}++;
 }
 close IN;
 
